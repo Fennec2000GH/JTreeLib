@@ -7,6 +7,7 @@ Currently Available Trees
 ------------------------- 
 
 Binary Tree 
+
 Binary Search Tree
 Multi-Way Tree 
 B-Tree
