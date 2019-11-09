@@ -1,220 +1,241 @@
 package JTreeLib.util;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
+import java.util.Collections;
 import java.util.Collection;
-import javolution.util.FastSortedSet;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.Queue;
-import java.util.Stack;
 import org.javatuples.Pair;
 
 /** Generic binary tree that follows no particular ordering rule
- * @param <N> Data type of <b>BinaryNode</b>
- * @param <K> Data type of <b>Key</b>
+ * @param <N> Data type of <i>BinaryNode</i>
+ * @param <K> Data type of <i>Key</i>
  */
 public class BinaryTree<N, K> extends Tree<N> {
+    //MEMBER FUNCTIONS
     //CONSTRUCTORS
-    /** Default constructor creates empty tree
+    /** Default constructor
      */
-    BinaryTree(){
+    public BinaryTree(){
         super();
+        this.setDegree(2);
     }
 
-    /** Constructor applies custom root <b>BinaryNode</b> and sets the capacity
-     * @param root First <b>BinaryNode</b> in <i>this</i>
-     * @param capacity Maximum number of <b>BinaryNode</b> that <i>this</i> can contain in total
+    /** Constructor applies <i>name</i> and <i>capacity</i>
+     * @param name A string that identifies a specific <i>BinaryTree</i>
+     * @param capacity Maximum number of <i>BinaryNode</i> that the tree can hold
      */
-    BinaryTree(BinaryNode<N, K> root, int capacity){
-        this.tree.addFirst(root);
-        this.capacity = Pair.with(capacity, true);
+    public BinaryTree(String name, int capacity){ super(name, 2, capacity); }
+
+    /** Copy constructor
+     */
+    public BinaryTree(BinaryTree<N, K> otherTree){
+        if(otherTree.getCapacity() != -1)
+            this.tree = Collections.unmodifiableList(new ArrayList<>(otherTree.getMaximumSize()));
+        else
+            this.tree = new ArrayList<>(otherTree.getCurrentSize());
+        for(int i = 0; i <= this.getCurrentSize() - 1; i++)
+            this.tree.set(i, otherTree.tree.get(i) == null ? null : new BinaryNode<>(otherTree.getNode(i)));
     }
 
     //ACCESSORS
-    /** Finds the <i>BinaryBinaryNode</i> located at given <i>index</i> in <i>this</i>
-     * @param index 0-based index in <i>tree</i>
-     * @return <i>BinaryNode</i> at given index
-     */
     @Override
     public BinaryNode<N, K> getNode(int index){
         return (BinaryNode<N, K>)super.getNode(index);
     }
 
-    /** Finds first <i>BinaryNode</i> in <i>this</i>
-     * @return Root of <i>this</i>
+    @Override
+    public BinaryNode<N, K> getRoot(){ return (BinaryNode<N, K>)this.tree.get(0); }
+
+    @Override
+    public boolean hasNode(int index){
+        if(index < 0 || index >= this.getTreeSize() || this.tree.get(index) == null)
+            return false;
+        return true;
+    }
+
+    /** Checks whether <i>BinaryTree</i> has a non-null <i>BinaryNode</i>
+     * @param node <i>BinaryNode</i> to check existence in <i>BinaryTree</i>
+     * @return Whether <i>BinaryNode</i> is in current <i>BinaryTree</i>
+     */
+    public boolean hasNode(BinaryNode<N, K> node){ return this.tree.contains(node); }
+
+    /** Finds out if <i>Node</i> at given index of tree is a leaf
+     * @param index Index where <i>Node</i> is located
+     * @return Whether specified <i>Node</i> is a leaf or not
      */
     @Override
-    public BinaryNode<N, K> getRoot(){
-        return (BinaryNode<N, K>)this.tree.getFirst();
+    public boolean isLeaf(int index){
+        if(!this.hasNode(index))
+            return false;
+        if(!(this.hasNode(this.getLeftChild(index)) || this.hasNode(this.getRightChild(index))))
+            return true;
+        return false;
     }
 
-    /** Finds the parent <b>BinaryNode</b> of a given child <b>BinaryNode</b>
-     * @param child <b>BinaryNode</b> object that is not root
-     * @return <b>BinaryNode</b> object that has child as an immediate descendent
+    /** Finds out if <i>Node</i> at given index of tree is a leaf
+     * @param node <i>Node</i> of interest
+     * @return Whether specified <i>Node</i> is a leaf or not
      */
-    public BinaryNode<N, K> getParent(BinaryNode<N, K> child){
-        int childIndex = this.tree.indexOf(child);
-        return this.getParent(childIndex);
+    public boolean isLeaf(Node<N> node){ return this.isLeaf(this.tree.indexOf(node)); }
+
+    /** With a set capacity, finds the maximum possible size of the container holding <i>BinaryNode</i> when capacity is full
+     * @param capacity Maximum number of <i>BinaryNode</i> that <i>this</i> can contain in total
+     * @return Maximum size of container holding full capacity of <i>BinaryNode</i> when all flushed to right side of tree
+     */
+    public static int getMaximumSize(int capacity){ return (int)Math.pow(2, capacity); }
+
+    /** With a set capacity, finds the maximum possible size container holding <i>BinaryNode</i> when capacity is full
+     * for current <i>BinaryTree </i>
+     * @return Maximum size of container holding full capacity of <i>BinaryNode</i> when all flushed to right side of tree
+     */
+    public int getMaximumSize(){ return BinaryTree.getMaximumSize(this.getCapacity()); }
+
+    /** Finds the parent of a given child
+     * @param childNode <i>BinaryNode</i> that is not root
+     * @return <i>BinaryNode</i> that has <i>childNode</i> as an immediate descendent
+     */
+    public BinaryNode<N, K> getParent(BinaryNode<N, K> childNode){
+        if(!this.hasNode(childNode))
+            return null;
+        return this.getParent(this.tree.indexOf(childNode));
     }
 
-    /** Finds the parent <b>BinaryNode</b> of a given child <b>BinaryNode</b>
+    /** Finds the parent <i>BinaryNode</i> of a given child <i>BinaryNode</i>
      * @param childIndex Index of a <i>BinaryNode</i> that is not root
-     * @return <b>BinaryNode</b> object that has child as an immediate descendent
+     * @return <i>BinaryNode</i> object that has child as an immediate descendent
      */
     @Override
     public BinaryNode<N, K> getParent(int childIndex){
-        if(childIndex < 0
-                || childIndex >= this.getTreeSize()
-                || this.getNode(childIndex) == null
-                || this.getNode(childIndex).equals(this.getRoot()))
+        if(!this.hasNode(childIndex))
             return null;
-        return this.getNode(BinaryTree.getParentIndex(childIndex));
+        int parentIndex = BinaryTree.getParentIndex(childIndex);
+        BinaryNode<N, K> parent = this.getNode(parentIndex);
+        if(!Arrays.asList(parent.getChildrenAsArray()).contains(this.getNode(childIndex)))
+            if(BinaryTree.getLeftChildIndex(parentIndex) == childIndex)
+                parent.setLeftChild(this.getNode(childIndex));
+            else
+                parent.setRightChild(this.getNode(childIndex));
+        return parent;
     }
 
-    /** Gets deep copy of subtree rooted at <i>rootIndex</i> in <i>this</i>
+    /** Creates deep copy of subtree rooted at <i>rootIndex</i> with no enforced capacity
      * @param rootIndex Index of subtree root
-     * @return New <i>Tree</i> containing copies of all <i>Node</i> in copied subtree in same order
+     * @return <i>BinaryTree</i> containing copies of all <i>BinaryNode</i> in subtree in same order
      */
     @Override
     public BinaryTree<N, K> getSubtree(int rootIndex){
-        if(rootIndex < 0
-            || rootIndex >= this.getTreeSize()
-            || !this.hasNode(rootIndex))
+        if(!this.hasNode(rootIndex))
             return null;
-        BinaryTree<N, K> temp = new BinaryTree<>();
-        temp.setCapacity(this.getCapacity());
-        temp.clear();
-        Queue<Pair<Integer, Integer>> Q = new LinkedBlockingQueue<>();
+        BinaryTree<N, K> output = new BinaryTree<>();
+        ArrayBlockingQueue<Pair<Integer, Integer>> Q = new ArrayBlockingQueue<>(this.getTreeSize());
         Q.offer(Pair.with(rootIndex, 0));
         while(!Q.isEmpty()){
-            int thisIndex = Q.peek().getValue0();
-            int tempIndex = Q.peek().getValue1();
+            Pair<Integer, Integer> indexPair = Q.poll();
+            int thisIndex = indexPair.getValue0(), outputIndex = indexPair.getValue1();
             if(this.hasNode(BinaryTree.getLeftChildIndex(thisIndex)))
-                Q.offer(Pair.with(BinaryTree.getLeftChildIndex(thisIndex), BinaryTree.getLeftChildIndex(tempIndex)));
+                Q.offer(Pair.with(BinaryTree.getLeftChildIndex(thisIndex), BinaryTree.getLeftChildIndex(outputIndex)));
             if(this.hasNode(BinaryTree.getRightChildIndex(thisIndex)))
-                Q.offer(Pair.with(BinaryTree.getRightChildIndex(thisIndex), BinaryTree.getRightChildIndex(tempIndex)));
-            temp.tree.set(tempIndex, new BinaryNode<>(this.getNode(thisIndex)));
-            Q.poll();
+                Q.offer(Pair.with(BinaryTree.getRightChildIndex(thisIndex), BinaryTree.getRightChildIndex(outputIndex)));
+            output.setNode(outputIndex, new BinaryNode<>(this.getNode(thisIndex)));
         }
-        return temp;
+        return output;
     }
 
-    /** Finds the left child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parent Any <b>BinaryNode</b> preferably with a left child <b>BinaryNode</b>
-     * @return <b>BinaryNode</b> connected to parent <b>BinaryNode</b> on left side
+    /** Finds the last <i>BinaryNode</i> in current <i>BinaryTree</i>
+     * @return Last non-null <i>BinaryNode</i> in <i>BinaryTree</i>
+     */
+    public BinaryNode<N, K> getLast(){ return (BinaryNode<N, K>)this.tree.stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList())
+            .get(this.getTreeSize() - 1);
+    }
+
+    /** Finds the left child of some <i>BinaryNode</i>
+     * @param parent <i>BinaryNode</i> potentially with left child
+     * @return Left child of <i>parent</i>
      */
     public BinaryNode<N, K> getLeftChild(BinaryNode<N, K> parent){
+        if(!this.hasNode(parent))
+            return null;
         int parentIndex = this.tree.indexOf(parent);
         return this.getLeftChild(parentIndex);
     }
 
-    /** Finds the left child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parentIndex Index of any <b>BinaryNode</b> preferably with a left child <b>BinaryNode</b>
-     * @return <b>BinaryNode</b> connected to parent <b>BinaryNode</b> on left side
+    /** Finds the left child of some <i>BinaryNode</i>
+     * @param parentIndex Index of parent
+     * @return Left child of <i>parent</i>
      */
     public BinaryNode<N, K> getLeftChild(int parentIndex){
-        if(parentIndex < 0
-                || parentIndex >= this.getTreeSize()
-                || this.getNode(parentIndex) == null)
+        if(!this.hasNode(parentIndex))
             return null;
         return this.getNode(BinaryTree.getLeftChildIndex(parentIndex));
     }
 
-    /** Finds the right child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parent Any <b>BinaryNode</b> preferably with a right child <b>BinaryNode</b>
-     * @return <b>BinaryNode</b> connected to parent <b>BinaryNode</b> on right side
+    /** Finds the right child of some <i>BinaryNode</i>
+     * @param parent <i>BinaryNode</i> potentially with right child
+     * @return Right child of <i>parent</i>
      */
     public BinaryNode<N, K> getRightChild(BinaryNode<N, K> parent){
+        if(!this.hasNode(parent))
+            return null;
         int parentIndex = this.tree.indexOf(parent);
         return this.getRightChild(parentIndex);
     }
 
-    /** Finds the right child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parentIndex Index of any <b>BinaryNode</b> preferably with a right child <b>BinaryNode</b>
-     * @return <b>BinaryNode</b> connected to parent <b>BinaryNode</b> on right side
+    /** Finds the right child of some <i>BinaryNode</i>
+     * @param parentIndex Index of parent
+     * @return Right child of <i>parent</i>
      */
     public BinaryNode<N, K> getRightChild(int parentIndex){
-        if(parentIndex < 0
-                || parentIndex >= this.getTreeSize()
-                || this.getNode(parentIndex) == null)
+        if(!this.hasNode(parentIndex))
             return null;
         return this.getNode(BinaryTree.getRightChildIndex(parentIndex));
     }
 
-    /** Finds index in <i>this</i> that holds parent <b>BinaryNode</b> of some child <b>BinaryNode</b>
-     * @param childIndex Index of a <b>BinaryNode</b> that is not root
-     * @return Index of parent <b>BinaryNode</b> of <b>BinaryNode</b> located at childIndex
+    /** Finds index in <i>this</i> that holds parent <i>BinaryNode</i> of some child <i>BinaryNode</i>
+     * @param childIndex Index of a <i>BinaryNode</i> that is not root
+     * @return Index of parent <i>BinaryNode</i> of <i>BinaryNode</i> located at childIndex
      */
     public static int getParentIndex(int childIndex){
         return (int)Math.ceil((double)childIndex / 2 - 1);
     }
 
-    /** Finds index in <i>this</i> that holds left child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parentIndex Index of a <b>BinaryNode</b> in <i>this</i>
-     * @return Index of left child <b>BinaryNode</b> of parent <b>BinaryNode</b>
+    /** Finds index in <i>this</i> that holds left child <i>BinaryNode</i> of some other <i>BinaryNode</i>
+     * @param parentIndex Index of a <i>BinaryNode</i> in <i>this</i>
+     * @return Index of left child <i>BinaryNode</i> of parent <i>BinaryNode</i>
      */
     public static int getLeftChildIndex(int parentIndex){
         return 2 * parentIndex + 1;
     }
 
-    /** Finds index in <i>this</i> that holds right child <b>BinaryNode</b> of some other <b>BinaryNode</b>
-     * @param parentIndex Index of a <b>BinaryNode</b> in <i>this</i>
-     * @return Index of right child <b>BinaryNode</b> of parent <b>BinaryNode</b>
+    /** Finds index in <i>this</i> that holds right child <i>BinaryNode</i> of some other <i>BinaryNode</i>
+     * @param parentIndex Index of a <i>BinaryNode</i> in <i>this</i>
+     * @return Index of right child <i>BinaryNode</i> of parent <i>BinaryNode</i>
      */
     public static int getRightChildIndex(int parentIndex){
         return 2 * parentIndex + 2;
     }
 
     /** Finds key located at index
-     * @param index Index in <i>this</i>
+     * @param index Index of key
      * @return Key if it exists at index
      */
     public K getKey(int index){
-        if(index < 0
-            || index >= this.getTreeSize()
-            || this.getNode(index) == null)
+        if(!this.hasNode(index))
             return null;
         return this.getNode(index).getKey();
     }
 
     /**Finds maximum number of nodes that can fill a given level; level 1 has only root
-     * @param level Number of horizontal layers of <b>BinaryNode</b> below root, which is at level 1
+     * @param level Number of horizontal layers of <i>BinaryNode</i> below root, which is at level 1
      * @return Maximum number of nodes level can have
      */
     public int capacityAtLevel(int level){
         if(level <= 0)
             return 0;
         return (int)Math.pow(2, level - 1);
-    }
-
-    /**Finds index of next <b>BinaryNode</b> to be visited in inorder traversal (LVR)
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Index of inorder successor of <b>BinaryNode</b> containing <i>key</i>
-     */
-    public int getInorderSuccessorIndex(K key){
-        int index = this.search(key);
-        if(this.tree.isEmpty() || index == -1)
-            return -1;
-        boolean keyIsVisited = false;
-        Stack<Integer> s = new Stack<>();
-        FastSortedSet<Integer> visited = new FastSortedSet<>();
-        s.push(0);
-        while(!s.isEmpty()){
-            int topIndex = s.peek();
-            int leftIndex = BinaryTree.getLeftChildIndex(topIndex);
-            int rightIndex = BinaryTree.getRightChildIndex(topIndex);
-            if(!visited.contains(leftIndex) && this.getNode(leftIndex) != null) {
-                s.push(leftIndex);
-                continue;
-            }
-            if(keyIsVisited)
-                return topIndex;
-            if(topIndex == index)
-                keyIsVisited = true;
-            visited.add(s.pop());
-            if(!visited.contains(rightIndex) && this.getNode(rightIndex) != null)
-                s.push(rightIndex);
-        }
-        return -1;
     }
 
     /** Finds maximum number of nodes that <i>this</i> can have at given height
@@ -234,6 +255,34 @@ public class BinaryTree<N, K> extends Tree<N> {
             return 0;
         return (int)Math.ceil(Math.log(numNodes + 1) / Math.log(2));
     }
+
+    /** Check whether a given level of <i>BinaryTree</i> is full with no null spots left
+     * @param level Level of tree to check, with root being in level 1
+     * @return Whether specified level contains maximum possible number of <i>BinaryNode</i>
+     */
+    public boolean isFullLevel(int level){
+        if(this.tree == null)
+            return true;
+        int startIndex = (int)Math.pow(2, level - 1) - 1, endIndex = startIndex + (int)Math.pow(2, level - 1);
+        return this.tree.subList(startIndex, endIndex).stream().allMatch(Objects::nonNull);
+    }
+
+    /** Finds out if <i>BinaryNode</i> at given index is a lonely and detached <i>BinaryNode</i>, meaning no children and no parent
+     * @param index Index of <i>BinaryNode</i> of interest
+     * @return Whether <i>BinaryNode</i> is a singleton or not
+     */
+    @Override
+    public boolean isSingleton(int index) {
+        if(!this.hasNode(index))
+            return false;
+        return !this.hasNode(this.getParent(index)) && this.isLeaf(index);
+    }
+
+    /** Finds out if <i>BinaryNode</i> is a lonely and detached <i>BinaryNode</i>, meaning no children and no parent
+     * @param node <i>BinaryNode</i> of interest
+     * @return Whether <i>BinaryNode</i> is a singleton or not
+     */
+    public boolean isSingleton(BinaryNode<N, K> node) { return this.isSingleton(this.tree.indexOf(node)); }
 
     /** Assuming a complete binary tree, finds minimum height needed to accommodate <i>numNode</i> <i>BinaryNode</i>
      * @param numNodes Number of <i>BinaryNode</i>
@@ -255,191 +304,316 @@ public class BinaryTree<N, K> extends Tree<N> {
      * @return Height of tree or subtree rooted at <i>root</i>
      */
     public int getHeight(int index){
-        if(this.getNode(index).getLeaf() || !this.hasNode(index))
+        if(this.getNode(index).isLeaf() || !this.hasNode(index))
             return 0;
-        else
-            return 1 + Math.max(this.getHeight(BinaryTree.getLeftChildIndex(index)),
-                    this.getHeight(BinaryTree.getRightChildIndex(index)));
+        return 1 + Math.max(this.getHeight(BinaryTree.getLeftChildIndex(index)), this.getHeight(BinaryTree.getRightChildIndex(index)));
     }
 
-    /** Prints out each <i>key</i> after traversal by breadth
+    /** Finds next <i>BinaryNode</i> to be visited in LVR depth-first traversal
+     * @param rootIndex Starting index to consider
+     * @return Whether criteria for an inorder successor is met or not
      */
-    public void traverseByBreadth(){
-        for(K key : this.traverseByBreadthArray())
-            System.out.println(key);
-    }
-
-    /** Traverses <i>this</i> by breadth using an array to collect each visited <i>key</i>
-     * @return Array containing each visited <i>key</i>
-     */
-    public K[] traverseByBreadthArray(){
-        ArrayList<K> arr = new ArrayList<>();
-        if(this.getNodeSize() == 0)
+    public BinaryNode<N, K> getInorderSuccessor(int rootIndex) {
+        int index = rootIndex;
+        if(!this.hasNode(rootIndex) || this.isSingleton(rootIndex) || this.getNode(rootIndex) == this.getRoot() && !this.hasNode(2))
             return null;
-        Queue<Integer> Q = new LinkedBlockingQueue<>();
-        Q.offer(0);
+        if(this.isLeaf(rootIndex)) { //Case 1 : leaf
+            if(BinaryTree.getLeftChildIndex(BinaryTree.getParentIndex(rootIndex)) == rootIndex)
+                return this.getParent(rootIndex);
+            else {
+                while(BinaryTree.getLeftChildIndex(BinaryTree.getParentIndex(index)) != index && index > 0)
+                    index = BinaryTree.getParentIndex(index);
+                if(index == 0) //rootIndex happens to be location of last-to-be-visited binary node
+                    return null;
+                return this.getParent(index);
+            }
+        } else if(this.hasNode(this.getLeftChild(rootIndex))) { //Case 2 : non-leaf with left child
+            while(this.hasNode(BinaryTree.getLeftChildIndex(index)))
+                index = BinaryTree.getLeftChildIndex(index);
+            return this.getNode(index);
+        } else //Case 3 : non-leaf with no left child but a right child
+            return this.getInorderSuccessor(BinaryTree.getRightChildIndex(rootIndex));
+    }
+
+    /** Finds next <i>BinaryNode</i> to be visited in LVR depth-first traversal
+     * @param node <i>BinaryNode</i> to start inorder successor search from
+     * @return Whether criteria for an inorder successor is met or not
+     */
+    public BinaryNode<N, K> getInorderSuccessor(BinaryNode<N, K> node){ return this.getInorderSuccessor(this.tree.indexOf(node)); }
+
+    /** Prints out each visited key on the go
+     * @param index Index of <i>this</i> containing <i>key</i>
+     * @return Whether visit is successful or not
+     */
+    private boolean visit(int index){
+        if(index < 0 || index > this.getTreeSize() || this.getKey(index) == null)
+            return false;
+        System.out.println(this.getKey(index));
+        return true;
+    }
+
+    /** Adds each visit key on the go by adding to a collection
+     * to <i>visitedBinaryNodes</i>
+     * @param index Index of <i>this</i> containing <i>key</i>
+     * @param arr Collection to add <i>key</i> to
+     * @param print Whether to print each key once visited
+     * @return Whether visit is successful or not
+     */
+    private boolean visit(int index, Collection<K> arr, boolean print){
+        if(index < 0 || index > this.getTreeSize() || this.getKey(index) == null)
+            return false;
+        arr.add(this.getKey(index));
+        return true;
+    }
+
+    /** Traversal by breadth by storing each visited key in given <i>Collection</i> and starts at given <i>index</i>
+     * @param index Index of subtree root to traverse
+     * @return Whether traversal is successful or not
+     */
+    public void traverseByBreath(int index, Collection<K> arr, boolean print){
+        ArrayBlockingQueue<Integer> Q = new ArrayBlockingQueue<>(this.getTreeSize());
+        Q.offer(index);
         while(!Q.isEmpty()){
             int topIndex = Q.poll();
-            if(this.getNode(topIndex) != null)
+            this.visit(topIndex, arr, print);
+            if(this.getLeftChild(topIndex) != null)
                 Q.offer(BinaryTree.getLeftChildIndex(topIndex));
             if(this.getRightChild(topIndex) != null)
                 Q.offer(BinaryTree.getRightChildIndex(topIndex));
-            this.visit(topIndex, arr);
         }
-        return (K[])arr.toArray();
     }
 
-    /** Prints out each <i>key</i> after inorder (LVR) traversal by depth
+    /** Traversal by breadth by storing visited keys in given <i>Collection</i> and traverses whole <i>BinaryTree</i>
+     * @param arr Where to collect visited keys
+     * @param print Whether to print each key once visited
+     * @return Whether traversal is successful or not
      */
-    public void traverseByDepth(){
-        for(K key : this.traverseByDepthArray())
-            System.out.println(key);
+    public void traverseByBreadth(Collection<K> arr, boolean print){ this.traverseByBreath(0, arr, print); }
+
+    /** Traverses by depth (LVR) by using a given <i>Collection</i> to collect each visited key and starts at given <i>index</i>
+     * @param index Current <i>index</i> of <i>BinaryNode</i> of focus during traversal
+     * @param arr Collection to add <i>key</i> to
+     * @return Whether traversal is successful or not
+     */
+    private void traverseByDepth(int index, Collection<K> arr, boolean print){
+        if(this.getLeftChild(index) != null)
+            this.traverseByDepth(BinaryTree.getLeftChildIndex(index), arr, print);
+        this.visit(index, arr, print);
+        if(this.getRightChild(index) != null)
+            this.traverseByDepth(BinaryTree.getRightChildIndex(index), arr, print);
     }
 
-    /** Traverses <i>this</i> inorder (LVR) by depth using an array to collect each visited <i>key</i>
-     * @return Array containing each visited <i>key</i>
+    /** Traverses by depth (LVR) by using a given <i>Collection</i> to collect each visited key and traverses whole <i>BinaryTree</i>
+     * @return Array containing each visited key
      */
-    public K[] traverseByDepthArray(){
-        if(this.getNodeSize() == 0)
-            return null;
-        ArrayList<K> arr = new ArrayList<>();
-        this.traverseByDepthArrayRecursion(0, arr);
-        return (K[])arr.toArray();
-    }
+    public void traverseByDepth(Collection<K> arr, boolean print){ this.traverseByDepth(0, arr, print);}
 
-    /** Searches for given <i>key</i>
-     * @return Index of <i>BinaryNode</i> with given <i>key</i> if exists, otherwise returns -1
+    /** Searches for given key
+     * @param key Key to search for
+     * @return Index of <i>BinaryNode</i> containing <i>key</i> if exists, otherwise returns -1
      */
-    public int search(K key){
-        for(int i = 1; i <= this.getTreeSize(); i++)
-            if(this.getNode(i - 1).getKey().equals(key))
-                return i - 1;
-        return -1;
-    }
+    public int search(K key){ return this.tree.stream().map(n -> ((BinaryNode<N, K>)n).getKey()).collect(Collectors.toList()).indexOf(key); }
 
     //MUTATORS
-    /** Sets new left child of <i>BinaryNode</i> at <i>parentIndex</i>
-     * @param parentIndex Index of parent <i>BinaryNode</i>
-     * @param l Potential left child <i>BinaryNode</i> of parent <i>BinaryNode</i>
-     * @return Whether setting left child <i>BinaryNode</i> is successful or not
+    /** Sets a new key for some <i>BinaryNode</i> at <i>index</i>
+     * @param index Index of <i>BinaryNode</i> needing to change key
+     * @param key New key to replace old key
+     * @return Whether setting a new key is successful or not
      */
-    public boolean setLeftChild(int parentIndex, BinaryNode<N, K> l){
-        int index = BinaryTree.getLeftChildIndex(parentIndex);
-        if(index >= this.getCapacity() && this.hasActiveCapacity()
-                || this.getNode(parentIndex) == null
-                || this.getIndex(l) >= 0)
+    public boolean setKey(int index, K key){
+        if(this.getNode(index).getKey().equals(key))
             return false;
-        this.getNode(parentIndex).setLeaf(false);
-        if(l.countChildren() > 0)
-            l.setLeaf(false);
-        else
-            l.setLeaf(true);
-        this.tree.set(BinaryTree.getLeftChildIndex(parentIndex), l);
-        this.getNode(parentIndex).children.setAt0(l);
+        this.getNode(index).setKey(key);
         return true;
     }
 
-    /** Sets new left child of <i>BinaryNode</i> at <i>parentIndex</i>, where left child is leaf containing given <i>key</i>
-     * @param parentIndex Index of parent <i>BinaryNode</i>
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Whether setting left child <i>BinaryNode</i> is successful or not
+    /** Sets a new key for some <i>BinaryNode</i>
+     * @param node <i>BinaryNode</i> to undergo change in key
+     * @param key New key to replace old key
+     * @return Whether setting a new key is successful or not
      */
-    public boolean setLeftChild(int parentIndex, K key){
-        return this.setLeftChild(parentIndex, new BinaryNode<>(key));
-    }
-
-    /** Sets new right child of <i>BinaryNode</i> at <i>parentIndex</i>
-     * @param parentIndex Index of parent <i>BinaryNode</i>
-     * @param r Potential left child <i>BinaryNode</i> of parent <i>BinaryNode</i>
-     * @return Whether setting left child <i>BinaryNode</i> is successful or not
-     */
-    public boolean setRightChild(int parentIndex, BinaryNode<N, K> r){
-        int index = BinaryTree.getRightChildIndex(parentIndex);
-        if(index >= this.getCapacity() && this.hasActiveCapacity()
-            || this.getNode(parentIndex) == null
-            || this.getIndex(r) >= 0)
+    public boolean setKey(BinaryNode<N, K> node, K key){
+        if(!this.hasNode(node))
             return false;
-        this.getNode(parentIndex).setLeaf(false);
-        if(r.countChildren() > 0)
-            r.setLeaf(false);
-        else
-            r.setLeaf(true);
-        this.tree.set(BinaryTree.getRightChildIndex(parentIndex), r);
-        this.getNode(parentIndex).children.setAt1(r);
+        int index = this.tree.indexOf(node);
+        this.setKey(index, key);
         return true;
     }
 
-    /** Sets new right child of <i>BinaryNode</i> at <i>parentIndex</i>, where right child is leaf containing given <i>key</i>
-     * @param parentIndex Index of parent <i>BinaryNode</i>
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Whether setting left child <i>BinaryNode</i> is successful or not
+    /** Sets new left child for some <i>BinaryNode</i> without changing any other <i>BinaryNode</i>
+     * @param parentIndex Index of parent
+     * @param leftChild New left child
+     * @return Whether setting a new left child is successful or not
      */
-    public boolean setRightChild(int parentIndex, K key){
-        return this.setRightChild(parentIndex, new BinaryNode<>(key));
-    }
-
-    /** Adds new <i>BinaryNode</i> at bottom of <i>this</i>, and <i>this</i> will expand by 1 level if full
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Whether inserting new <i>BinaryNode</i> is successful or not
-     */
-    public boolean insert(K key){
-        if(this.isFullToCapacity() && this.hasActiveCapacity())
+    public boolean setLeftChild(int parentIndex, BinaryNode<N, K> leftChild){
+        int newIndex = BinaryTree.getLeftChildIndex(parentIndex);
+        if(!this.hasNode(parentIndex) || this.hasNode(leftChild))
             return false;
-        if(this.isFull())
-            this.reserve(this.capacityAtHeight(this.getHeight() + 1));
-        int index = 0;
-        for(int i = this.getTreeSize(); i >= 1; i--)
-            if(this.getNode(i - 1) != null)
-                index = i - 1;
-        this.tree.set(index, new BinaryNode<>(key));
+        leftChild.setLeaf();
+        this.getNode(parentIndex).setLeftChild(leftChild);
+        this.tree.set(BinaryTree.getLeftChildIndex(parentIndex), leftChild);
+        if(this.hasNode(BinaryTree.getLeftChildIndex(newIndex)))
+            leftChild.setLeftChild(this.getNode(BinaryTree.getLeftChildIndex(newIndex)));
+        if(this.hasNode(BinaryTree.getRightChildIndex(newIndex)))
+            leftChild.setRightChild(this.getNode(BinaryTree.getRightChildIndex(newIndex)));
         return true;
     }
 
-    /** Removes <i>BinaryNode</i> from <i>tree</i> with given <i>key</i>
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Whether deletion of <i>BinaryNode</i> is successful or not
+    /** Sets new left child for <i>parent</i> without changing any other <i>BinaryNode</i>
+     * @param parent A <i>BinaryNode</i>
+     * @param leftChild New left child
+     * @return Whether setting a new left child is successful or not
+     */
+    public boolean setLeftChild(BinaryNode<N, K> parent, BinaryNode<N, K> leftChild){
+        if(!this.hasNode(parent))
+            return false;
+        int parentIndex = this.tree.indexOf(parent);
+        return this.setLeftChild(parentIndex, leftChild);
+    }
+
+    /** Sets new right child for some <i>BinaryNode</i> without changing any other <i>BinaryNode</i>
+     * @param parentIndex Index of parent
+     * @param rightChild New left child
+     * @return Whether setting a new left child is successful or not
+     */
+    public boolean setRightChild(int parentIndex, BinaryNode<N, K> rightChild){
+        int newIndex = BinaryTree.getRightChildIndex(parentIndex);
+        if(!this.hasNode(parentIndex) || this.hasNode(rightChild))
+            return false;
+        rightChild.setLeaf();
+        this.getNode(parentIndex).setRightChild(rightChild);
+        this.tree.set(BinaryTree.getRightChildIndex(parentIndex), rightChild);
+        if(this.hasNode(BinaryTree.getLeftChildIndex(newIndex)))
+            rightChild.setLeftChild(this.getNode(BinaryTree.getLeftChildIndex(newIndex)));
+        if(this.hasNode(BinaryTree.getRightChildIndex(newIndex)))
+            rightChild.setRightChild(this.getNode(BinaryTree.getRightChildIndex(newIndex)));
+        return true;
+    }
+
+    /** Sets new right child for <i>parent</i> without changing any other <i>BinaryNode</i>
+     * @param parent A <i>BinaryNode</i>
+     * @param rightChild New right child
+     * @return Whether setting a new left child is successful or not
+     */
+    public boolean setRightChild(BinaryNode<N, K> parent, BinaryNode<N, K> rightChild){
+        if(!this.hasNode(parent))
+            return false;
+        int parentIndex = this.tree.indexOf(parent);
+        return this.setRightChild(parentIndex, rightChild);
+    }
+
+    /** Inserts <i>BinaryNode</i> with given key at the first open spot, given that <i>BinaryTree</i> is not already full
+     * @param key Key of inserted <i>BinaryNode</i>
+     * @return Whether inserting <i></i>BinaryNode</i> is successful or not
+     */
+    public boolean insertFirst(K key){ return this.insertFirst(new BinaryNode<>(key)); }
+
+    /** Inserts <i>BinaryNode</i> at the first open spot, given that <i>BinaryTree</i> is not already full
+     * @param node <i>BinaryNode</i> to insert
+     * @return Whether inserting <i></i>BinaryNode</i> is successful or not
+     */
+    public boolean insertFirst(BinaryNode<N, K> node){
+        if(node == null)
+            return false;
+        if(this.hasNode(node) || this.getTreeSize() >= this.getCapacity() && this.getCapacity() != -1)
+            return false;
+        int index = this.tree.indexOf(null);
+        this.setNode(index, node);
+        return true;
+    }
+
+    /** Inserts <i>BinaryNode</i> with given key at the first open spot after last fully filled level,
+     * given that <i>BinaryTree</i> is not already full
+     * @param key Key of inserted <i>BinaryNode</i>
+     * @return Whether inserting <i></i>BinaryNode</i> is successful or not
+     */
+    public boolean insertLast(K key){ return this.insertLast(new BinaryNode<>(key)); }
+
+    /** Inserts <i>BinaryNode</i> at first open spot after last fully filled level,
+     * given that <i>BinaryTree</i> is not already full
+     * @param node <i>BinaryNode</i> to insert
+     * @return Whether inserting <i></i>BinaryNode</i> is successful or not
+     */
+    public boolean insertLast(BinaryNode<N, K> node){
+        if(node == null)
+            return false;
+        if(this.hasNode(node) || this.getTreeSize() >= this.getCapacity() && this.getCapacity() != -1)
+            return false;
+        int index = this.tree.indexOf(
+                this.tree.stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList())
+                        .get(this.getTreeSize() - 1));
+        int level = BinaryTree.getLevels(index + 1);
+        while(!this.isFullLevel(level))
+            --level;
+        ++level;
+        for(int startIndex = (int)Math.pow(2, level - 1) - 1, endIndex = startIndex + (int)Math.pow(2, level - 1), i = startIndex;
+            i <= endIndex; i++)
+            if(!this.hasNode(i)){
+                node.setLeaf();
+                this.setNode(i, node);
+                return true;
+            }
+        return false;
+    }
+
+    /** If <i>BinaryNode</i> with given key is leaf, then <i>BinaryNode</i> will be simply removed.
+     * Otherwise, last <i>BinaryNode</i> is removed first and then replaces <i>BinaryNode</i> with given key.
+     * @param key Key to remove
+     * @return Whether removal of <i>BinaryNode</i> with given key is successful or not
      */
     public boolean remove(K key){
         int index = this.search(key);
-        if(this.tree.isEmpty() || index == -1)
+        if(index == -1)
             return false;
-        int lastNodeIndex = this.getTreeSize() - 1;
-        for(int i = this.getTreeSize(); i >= 1; i--)
-            if(this.tree.get(i - 1) != null){
-                lastNodeIndex = i - 1;
-                break;
-            }
-        this.tree.remove(index);
-        this.tree.set(index, this.tree.get(lastNodeIndex));
-        this.tree.remove(lastNodeIndex);
+        BinaryNode<N, K> node = this.getNode(index);
+        if(node.isLeaf())
+            this.tree.set(index, null);
+        else {
+            this.setNode(index, this.getLast());
+            this.remove(this.getLast());
+        }
         return true;
     }
 
-    /** Inserts new subtree at given <i>rootIndex</i>
+    /** If <i>BinaryNode</i> is leaf, then <i>BinaryNode</i> will be simply removed.
+     * Otherwise, last <i>BinaryNode</i> is removed first and then replaces chosen <i>BinaryNode</i>.
+     * @param node <i>BinaryNode</i> to remove
+     * @return  Whether removal of <i>BinaryNode</i> with given key is successful or not
+     */
+    public boolean remove(BinaryNode<N, K> node){
+        int index = this.tree.indexOf(node);
+        if(index == -1)
+            return false;
+        this.tree.set(index, null);
+        return true;
+    }
+
+    /** Inserts new subtree via deep copy at given <i>rootIndex</i>
      * @param rootIndex Index in <i>this</i> to store root of new subtree
      * @param subtree New subtree to insert
      * @return Whether inserting new subtree is successful for not
      */
     @Override
     public boolean insertSubtree(int rootIndex, Tree<N> subtree){
-        if(rootIndex < 0 || rootIndex >= this.getTreeSize())
+        if(!this.hasNode(rootIndex))
             return false;
         if(rootIndex == 0){
             this.tree = subtree.tree;
             return true;
         }
         this.removeSubtree(rootIndex);
-        Queue<Pair<Integer, Integer>> Q = new LinkedBlockingQueue<>();
-        Q.offer(Pair.with(0, rootIndex));
+        ArrayBlockingQueue<Pair<Integer, Integer>> Q = new ArrayBlockingQueue<>(this.getTreeSize());
+        Q.offer(Pair.with(rootIndex, 0));
         while(!Q.isEmpty()){
-            int subtreeIndex = Q.peek().getValue0();
-            int thisIndex = Q.peek().getValue1();
-            if(subtree.hasNode(BinaryTree.getLeftChildIndex(subtreeIndex)))
-                Q.offer(Pair.with(BinaryTree.getLeftChildIndex(subtreeIndex), BinaryTree.getLeftChildIndex(thisIndex)));
-            if(subtree.hasNode(BinaryTree.getRightChildIndex(subtreeIndex)))
-                Q.offer(Pair.with(BinaryTree.getRightChildIndex(subtreeIndex), BinaryTree.getRightChildIndex(thisIndex)));
-            this.tree.set(thisIndex, new Node<>(subtree.getNode(subtreeIndex)));
-            Q.poll();
+            Pair<Integer, Integer> indexPair = Q.poll();
+            int thisIndex = indexPair.getValue0(), subtreeIndex = indexPair.getValue1();
+            this.setNode(thisIndex, new BinaryNode<N, K>((BinaryNode<N, K>)subtree.getNode(subtreeIndex)));
+            if(subtree.hasNode(((BinaryTree<N, K>)subtree).getLeftChild(subtreeIndex)))
+                Q.offer(Pair.with(BinaryTree.getLeftChildIndex(thisIndex), BinaryTree.getLeftChildIndex(subtreeIndex)));
+            if(subtree.hasNode(((BinaryTree<N, K>)subtree).getRightChild(subtreeIndex)))
+                Q.offer(Pair.with(BinaryTree.getRightChildIndex(thisIndex), BinaryTree.getRightChildIndex(subtreeIndex)));
         }
         return true;
     }
@@ -450,166 +624,126 @@ public class BinaryTree<N, K> extends Tree<N> {
      */
     @Override
     public boolean removeSubtree(int rootIndex){
-        if(rootIndex < 0
-                || rootIndex >= this.getTreeSize()
-                || this.getNode(rootIndex) == null)
+        if(!this.hasNode(rootIndex))
             return false;
         if(rootIndex == 0){
             this.clear();
             return true;
         }
-        Queue<Integer> Q = new LinkedBlockingQueue<>();
+        ArrayBlockingQueue<Integer> Q = new ArrayBlockingQueue<Integer>(this.getTreeSize());
         Q.offer(rootIndex);
         while(!Q.isEmpty()){
             int topIndex = Q.poll();
+            this.tree.set(topIndex, null);
             if(this.hasNode(BinaryTree.getLeftChildIndex(topIndex)))
                 Q.offer(BinaryTree.getLeftChildIndex(topIndex));
             if(this.hasNode(BinaryTree.getRightChildIndex(topIndex)))
                 Q.offer(BinaryTree.getRightChildIndex(topIndex));
-            this.tree.set(topIndex, null);
         }
         return true;
     }
 
     /** Performs left rotation rooted at given index
-     * @param topIndex Index if topmost <i>BinaryNode</i> to be moved
-     * @return Whether left-rotating subtree rooted at <i>topIndex</i> is successful or not
+     * @param rootIndex Index of root of subtree to rotate left about
+     * @return Whether left rotation is successful or not
      */
-    public boolean leftRotation(int topIndex){
-        if(topIndex < 0
-            || topIndex >= this.getTreeSize()
-            || this.getRightChild(topIndex) == null
-            || this.getNode(topIndex) == null)
+    public boolean leftRotation(int rootIndex){
+        if(!this.hasNode(rootIndex))
             return false;
-        int newTopIndex = BinaryTree.getLeftChildIndex(topIndex);
-        int childIndex = BinaryTree.getRightChildIndex(topIndex);
-        int grandChildIndex = BinaryTree.getLeftChildIndex(childIndex);
-        BinaryTree<N, K> leftSubtree = this.getSubtree(newTopIndex);
+        int leftIndex = BinaryTree.getLeftChildIndex(rootIndex),
+                rightIndex = BinaryTree.getRightChildIndex(rootIndex),
+                grandChildIndex = BinaryTree.getLeftChildIndex(rightIndex);
+        BinaryNode<N, K> originalRoot = new BinaryNode<>(this.getNode(rootIndex));
+        BinaryTree<N, K> leftSubtree = this.getSubtree(leftIndex);
         BinaryTree<N, K> grandChildSubtree = this.getSubtree(grandChildIndex);
-        BinaryNode<N, K> topNode = new BinaryNode<>(this.getNode(topIndex));
-        this.tree.set(grandChildIndex, null);
-        this.removeSubtree(newTopIndex);
-
-        BinaryTree<N, K> rightSubtree = this.getSubtree(childIndex);
-        this.removeSubtree(childIndex);
-        this.insertSubtree(topIndex, rightSubtree);
-        this.setLeftChild(topIndex, topNode);
-        this.insertSubtree(BinaryTree.getLeftChildIndex(newTopIndex), leftSubtree);
-        this.insertSubtree(BinaryTree.getRightChildIndex(newTopIndex), grandChildSubtree);
-        this.getNode(newTopIndex).children.setAt0(this.getLeftChild(newTopIndex));
-        this.getNode(newTopIndex).children.setAt1(this.getRightChild(newTopIndex));
+        this.removeSubtree(grandChildIndex);
+        BinaryTree<N, K> rightSubtree = this.getSubtree(rightIndex);
+        this.removeSubtree(rootIndex);
+        this.insertSubtree(rootIndex, rightSubtree);
+        this.setLeftChild(rootIndex, originalRoot);
+        this.insertSubtree(BinaryTree.getLeftChildIndex(leftIndex), leftSubtree);
+        this.insertSubtree(BinaryTree.getRightChildIndex(leftIndex), grandChildSubtree);
         return true;
     }
 
     /** Performs right rotation rooted at given index
-     * @param topIndex Index if topmost <i>BinaryNode</i> to be moved
-     * @return Whether right-rotating subtree rooted at <i>topIndex</i> is successful or not
+     * @param rootIndex Index of root of subtree to rotate left about
+     * @return Whether right rotation is successful or not
      */
-    public boolean rightRotation(int topIndex){
-        if(topIndex < 0
-                || topIndex >= this.getTreeSize()
-                || this.getLeftChild(topIndex) == null
-                || this.getNode(topIndex) == null)
+    public boolean rightRotation(int rootIndex){
+        if(!this.hasNode(rootIndex))
             return false;
-        int newTopIndex = BinaryTree.getRightChildIndex(topIndex);
-        int childIndex = BinaryTree.getLeftChildIndex(topIndex);
-        int grandChildIndex = BinaryTree.getRightChildIndex(childIndex);
-        BinaryTree<N, K> rightSubtree = this.getSubtree(newTopIndex);
+        int rightIndex = BinaryTree.getRightChildIndex(rootIndex),
+                leftIndex = BinaryTree.getLeftChildIndex(rootIndex),
+                grandChildIndex = BinaryTree.getRightChildIndex(leftIndex);
+        BinaryNode<N, K> originalRoot = new BinaryNode<>(this.getNode(rootIndex));
+        BinaryTree<N, K> rightSubtree = this.getSubtree(rightIndex);
         BinaryTree<N, K> grandChildSubtree = this.getSubtree(grandChildIndex);
-        BinaryNode<N, K> topNode = new BinaryNode<>(this.getNode(topIndex));
-        this.tree.set(grandChildIndex, null);
-        this.removeSubtree(newTopIndex);
-
-        BinaryTree<N, K> leftSubtree = this.getSubtree(childIndex);
-        this.removeSubtree(childIndex);
-        this.insertSubtree(topIndex, leftSubtree);
-        this.setRightChild(topIndex, topNode);
-        this.insertSubtree(BinaryTree.getRightChildIndex(newTopIndex), rightSubtree);
-        this.insertSubtree(BinaryTree.getLeftChildIndex(newTopIndex), grandChildSubtree);
-        this.getNode(newTopIndex).children.setAt0(this.getLeftChild(newTopIndex));
-        this.getNode(newTopIndex).children.setAt1(this.getRightChild(newTopIndex));
+        this.removeSubtree(grandChildIndex);
+        BinaryTree<N, K> leftSubtree = this.getSubtree(leftIndex);
+        this.removeSubtree(rootIndex);
+        this.insertSubtree(rootIndex, leftSubtree);
+        this.setRightChild(rootIndex, originalRoot);
+        this.insertSubtree(BinaryTree.getRightChildIndex(rightIndex), rightSubtree);
+        this.insertSubtree(BinaryTree.getLeftChildIndex(leftIndex), grandChildSubtree);
         return true;
-    }
-
-    //MEMBER VARIABLES AND SPECIAL FUNCTIONS
-    /** Confirm visit of <i>BinaryNode</i> during traversal of <i>this</i> by printing out <i>key</i> at index
-     * @param index Index of <i>this</i> containing <i>key</i>
-     * @return Whether visit is successful or not
-     */
-    protected boolean visit(int index){
-        if(index < 0 || index > this.tree.size() || this.getKey(index) == null)
-            return false;
-        System.out.println(this.getKey(index));
-        return true;
-    }
-
-    /** Confirm visit of <i>key</i> during traversal of <i>this</i> by adding <i>key</i> at <i>index</i> to <i>arr</i>
-     * to <i>visitedBinaryNodes</i>
-     * @param index Index of <i>this</i> containing <i>key</i>
-     * @param arr Collection to add <i>key</i> to
-     * @return Whether visit is successful or not
-     */
-    protected boolean visit(int index, Collection<K> arr){
-        if(index < 0 || index > this.getTreeSize())
-            return false;
-        arr.add(this.getKey(index));
-        return true;
-    }
-
-    /** Sub-function to be used within <i>traverseByDepthArray</i>; constitutes the recursive call
-     * @param index Current <i>index</i> of <i>BinaryNode</i> of focus during traversal
-     * @param arr Collection to add <i>key</i> to
-     */
-    protected void traverseByDepthArrayRecursion(int index, Collection<K> arr){
-        if(this.getLeftChild(index) != null)
-            this.traverseByDepthArrayRecursion(BinaryTree.getLeftChildIndex(index), arr);
-        this.visit(index, arr);
-        if(this.getRightChild(index) != null)
-            this.traverseByDepthArrayRecursion(BinaryTree.getRightChildIndex(index), arr);
     }
 
 }
 
 /** Variant of <i>BinaryTree</i> that sorts <i>key</i>
- * @param <N> Data type of <b>BinaryNode</b>
- * @param <K> Data type of <b>Key</b>
+ * @param <N> Data type of <i>BinaryNode</i>
+ * @param <K> Data type of <i>Key</i>
  */
 class BinarySearchTree<N, K> extends BinaryTree<N, K>{
+    //MEMBER FUNCTIONS
     //CONSTRUCTORS
     /** Default constructor creates empty tree
      */
-    BinarySearchTree(){super();}
+    public BinarySearchTree(){super();}
 
-    /** Constructor applies custom root <b>BinaryNode</b> and sets capacity
-     * @param root First <b>BinaryNode</b> in <i>this</i>
-     * @param capacity Maximum number of <b>BinaryNode</b> that <i>this</i> can contain in total
+    /** Constructor applies custom root <i>BinaryNode</i> and sets capacity
+     * @param name A string that identifies a specific <i>BinarySearchTree</i>
+     * @param capacity Maximum number of <i>BinaryNode</i> that the tree can hold
      */
-    BinarySearchTree(BinaryNode<N, K> root, int capacity){
-        super(root, capacity);
-    }
+    BinarySearchTree(String name, int capacity){ super(name, capacity); }
 
     //ACCESSORS
-    /** Search for index of <i>BinaryNode</i> containing given <i>key</i>
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Index of <i>BinaryNode</i> containing <i>key</i>, otherwise -1 if does not exist
+    @Override
+    public boolean insertFirst(K key){ return false; }
+
+    @Override
+    public boolean insertFirst(BinaryNode<N, K> node){ return false; }
+
+    @Override
+    public boolean insertLast(K key){ return false; }
+
+    @Override
+    public boolean insertLast(BinaryNode<N, K> node){ return false; }
+
+    /** Search for index of <i>BinaryNode</i> containing given key
+     * @param key Key to search for
+     * @return Index of <i>BinaryNode</i> containing given key, otherwise -1 if does not exist
      */
     @Override
     public int search(K key){
         return this.search(key, 0);
     }
 
-    /** Search for index of <i>BinaryNode</i> containing given <i>key</i>, but starting seach at given <i>startIndex</i>
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Index of <i>BinaryNode</i> containing <i>key</i>, otherwise -1 if does not exist
+    /** Search for index of <i>BinaryNode</i> containing given key, but starting search at some given index
+     * @param key Key to search for
+     * @return Index of <i>BinaryNode</i> containing given key, otherwise -1 if does not exist
      */
     public int search(K key, int startIndex){
-        if (this.tree.isEmpty())
+        if(this.tree == null)
+            return -1;
+        if(this.tree.isEmpty())
             return -1;
         int index = startIndex;
-        while(this.getKey(index) != null){
+        while(this.hasNode(index)){
             if(this.getKey(index).equals(key))
                 return index;
-            else if((double)this.getKey(index) > (double)key)
+            else if(String.valueOf(key).compareTo(String.valueOf(this.getKey(index))) < 0)
                 index = BinaryTree.getLeftChildIndex(index);
             else
                 index = BinaryTree.getRightChildIndex(index);
@@ -617,45 +751,36 @@ class BinarySearchTree<N, K> extends BinaryTree<N, K>{
         return -1;
     }
 
-    /** Finds index of the next node to be visited in inorder traversal (LVR)
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Index of inorder successor to <i>BinaryNode</i> containing given <i>key</i>
-     */
-    @Override
-    public int getInorderSuccessorIndex(K key){
-        if(this.search(key) == -1)
-            return -1;
-        K[] arr = this.traverseByDepthArray();
-        int arrIndex = Arrays.asList(arr).indexOf(key);
-        if(arrIndex == arr.length - 1)
-            return -1;
-        return arrIndex + 1;
-    }
-
     //MUTATORS
-    /** Adds new <i>BinaryNode</i>at bottom of <i>this</i>, and <i>this</i> will expand by 1 level if full
-     * @param key Value a <i>BinaryNode</i> holds
+    /** Inserts new <i>BinaryNode</i> with given key into correct spot by key ordering
+     * @param key Key to insert
      * @return Whether inserting new <i>BinaryNode</i> is successful or not
      */
-    @Override
-    public boolean insert(K key){
+    public boolean insert(K key){ return this.insert(new BinaryNode<>(key)); }
+
+    /** Inserts given <i>BinaryNode</i> into correct spot by key ordering
+     * @param node <i>BinaryNode</i> to insert
+     * @return Whether inserting new <i>BinaryNode</i> is successful or not
+     */
+    public boolean insert(BinaryNode<N, K> node){
         if(this.tree.isEmpty())
-            this.tree.addFirst(new BinaryNode<>(key));
+            this.tree.set(0, node);
+        K key = node.getKey();
         int p = 0, prev = 0;
         while(this.hasNode(p)){
             prev = p;
-            BinaryNode<N, K> node = (BinaryNode<N, K>)this.tree.get(p);
-            if(node.getKey().equals(key))
+            K currentKey = ((BinaryNode<N, K>)this.tree.get(p)).getKey();
+            if(currentKey.equals(key))
                 return false;
-            else if(String.valueOf(key).compareTo(String.valueOf(node.getKey())) < 0)
+            else if(String.valueOf(key).compareTo(String.valueOf(currentKey)) < 0)
                 p = BinaryTree.getLeftChildIndex(p);
             else
                 p = BinaryTree.getRightChildIndex(p);
         }
         if(String.valueOf(key).compareTo(String.valueOf(this.getKey(prev))) < 0)
-            this.setLeftChild(prev, new BinaryNode<>(key));
+            this.setLeftChild(prev, node);
         else
-            this.setRightChild(prev, new BinaryNode<>(key));
+            this.setRightChild(prev, node);
         return true;
     }
 
@@ -668,59 +793,90 @@ class BinarySearchTree<N, K> extends BinaryTree<N, K>{
         int index = this.search(key);
         if(index == -1)
             return false;
-        if(this.getNode(index).getLeaf())
+        if(this.getNode(index).isLeaf())
+            super.remove(key);
+        else if(!this.hasNode(BinaryTree.getLeftChildIndex(index))){
+            BinaryTree<N, K> rightSubtree = this.getSubtree(BinaryTree.getRightChildIndex(index));
             this.tree.set(index, null);
-        else if(((BinaryNode<N, K>)this.tree.get(index)).countChildren() == 1){
-            Queue<Pair<Integer, Integer>> Q = new LinkedBlockingQueue<>();
-            int oldIndex = 0, newIndex = 0;
-            if(this.tree.get(BinaryTree.getLeftChildIndex(index)) != null)
-                Q.offer(Pair.with(BinaryTree.getLeftChildIndex(index), index));
-            else
-                Q.offer(Pair.with(BinaryTree.getRightChildIndex(index), index));
-            while(!Q.isEmpty()){
-                Pair<Integer, Integer> top = Q.poll();
-                oldIndex = top.getValue0();
-                newIndex = top.getValue1();
-                if(this.tree.get(BinaryTree.getLeftChildIndex(oldIndex)) != null)
-                    Q.offer(Pair.with(BinaryTree.getLeftChildIndex(oldIndex), BinaryTree.getLeftChildIndex(newIndex)));
-                if(this.tree.get(BinaryTree.getRightChildIndex(oldIndex)) != null)
-                    Q.offer(Pair.with(BinaryTree.getRightChildIndex(oldIndex), BinaryTree.getRightChildIndex(newIndex)));
-                this.tree.set(newIndex, this.tree.get(oldIndex));
-                this.tree.set(oldIndex, null);
-            }
+            this.insertSubtree(index, rightSubtree);
+        } else if(!this.hasNode(BinaryTree.getRightChildIndex(index))){
+            BinaryTree<N, K> leftSubtree = this.getSubtree(BinaryTree.getLeftChildIndex(index));
+            this.tree.set(index, null);
+            this.insertSubtree(index, leftSubtree);
         } else {
-            int inorder = this.getInorderSuccessorIndex(key);
-            this.tree.set(index, this.tree.get(inorder));
-            this.tree.set(inorder, null);
+            int inorderSuccessorIndex = this.tree.indexOf(this.getInorderSuccessor(BinaryTree.getRightChildIndex(index)));
+            BinaryNode<N, K> newTopNode = this.getNode(inorderSuccessorIndex);
+            this.tree.set(inorderSuccessorIndex, null);
+            this.tree.set(index, null);
+            this.setNode(index, newTopNode);
         }
         return true;
     }
 
 }
 
+/** Variant of <i>BinarySearchTree</i> that uses threads to faciliate traversal
+ * @param <N> Data type of <i>BinaryNode</i>
+ * @param <K> Data type of <i>Key</i>
+ */
+class ThreadedBinarySearchTree<N, K> extends BinarySearchTree<N, K> {
+    //MEMBER FUNCTIONS
+    //CONSTRUCTORS
+    /** Default constructor
+     */
+    public ThreadedBinarySearchTree(){ super(); }
+
+    /** Constructor applies <i>name</i> and <i>capacity</i>
+     * @param name A string that identifies a specific <i>ThreadedBinarySearchTree</i>
+     * @param capacity Maximum number of <i>BinaryNode</i> that the tree can hold
+     */
+    public ThreadedBinarySearchTree(String name, int capacity){ super(name, capacity); }
+
+    //ACCESSORS
+    /** Finds next <i>BinaryNode</i> to be visited in LVR depth-first traversal
+     * @param rootIndex Starting index to consider
+     * @return Whether criteria for an inorder successor is met or not
+     */
+    @Override
+    public BinaryNode<N, K> getInorderSuccessor(int rootIndex){
+        if(!this.hasNode(rootIndex) || this.getNode(rootIndex).countChildren() == 0)
+            return null;
+        return this.getNode(rootIndex).getInorderSuccessor(this);
+    }
+
+    /** Finds next <i>BinaryNode</i> to be visited in LVR depth-first traversal
+     * @param node <i>BinaryNode</i> to start inorder successor search from
+     * @return Whether criteria for an inorder successor is met or not
+     */
+    @Override
+    public BinaryNode<N, K> getInorderSuccessor(BinaryNode<N, K> node){ return this.getInorderSuccessor(this.tree.indexOf(node)); }
+
+    //MUTATORS
+
+
+
+}
+
 /** Variant of <i>BinaryTree</i> that cannot allow a height difference of more than 1 for any
  *  adjacent pair of subtrees
- * @param <N> Data type of <b>BinaryNode</b>
- * @param <K> Data type of <b>Key</b>
+ * @param <N> Data type of <i>BinaryNode</i>
+ * @param <K> Data type of <i>Key</i>
  */
 class AVLTree<N, K> extends BinarySearchTree<N, K> {
     //CONSTRUCTORS
     /** Default constructor creates empty tree
      */
-    AVLTree(){super(); }
+    public AVLTree(){super(); }
 
-    /** Constructor applies custom root <b>BinaryNode</b> and sets capacity
-     * @param root First <b>BinaryNode</b> in <i>this</i>
+    /** Constructor applies custom root <i>BinaryNode</i> and sets capacity
+     * @param name A string that identifies a specific <i>AVLTree</i>
+     * @param capacity Maximum number of <i>BinaryNode</i> that the tree can hold
      */
-    AVLTree(BinaryNode<N, K> root, int capacity){
-        super(root, capacity);
+    public AVLTree(String name, int capacity){
+        super(name, capacity);
     }
 
     //ACCESSORS
-    /** Finds the <i>AVLNode</i> located at given <i>index</i> in <i>this</i>
-     * @param index 0-based index in <i>tree</i>
-     * @return <i>AVLNode</i> at given index
-     */
     @Override
     public AVLNode<N, K> getNode(int index){
         return (AVLNode<N, K>)this.tree.get(index);
@@ -755,53 +911,17 @@ class AVLTree<N, K> extends BinarySearchTree<N, K> {
     }
 
     //MUTATORS
-    /** Adds new <i>AVLNode</i> at bottom of <i>this</i>, and <i>this</i> will expand by 1 level if full
-     * @param key Value a <i>BinaryNode</i> holds
-     * @return Whether inserting new <i>BinaryNode</i> is successful or not
+    /** Inserts new <i>AVLNode</i>
+     * @param key Key of inserted <i>AVLNode</i>
+     * @return Whether inserting new <i>AVLNode</i> is successful or not
      */
     @Override
     public boolean insert(K key){
-        boolean insertBool = super.insert(key);
-        if(!insertBool)
+        if(!super.insert(key))
             return false;
         int insertIndex = super.search(key);
-        this.getNode(insertIndex).setBalanceFactor(0);
-        K insertKey = this.getKey(insertIndex);
-        int index = BinaryTree.getParentIndex(insertIndex);
-        while(index > -1){
-            if(String.valueOf(this.getKey(index)).compareTo(String.valueOf(insertKey)) < 0)
-                this.getNode(index).setBalanceFactor(this.getNode(index).getBalanceFactor() + 1);
-            else
-                this.getNode(index).setBalanceFactor(this.getNode(index).getBalanceFactor() - 1);
-            index = BinaryTree.getParentIndex(index);
-        }
 
-        index = BinaryTree.getParentIndex(insertIndex);
-        while(index != 0){
-            int topIndex;
-            if(this.getBalanceFactor(index) > 1){
-                topIndex = BinaryTree.getRightChildIndex(index);
-                if(this.getBalanceFactor(topIndex) >= 0)
-                    this.leftRotation(index);
-                else {
-                    this.rightRotation(topIndex);
-                    this.leftRotation(index);
-                }
-                index = BinaryTree.getParentIndex(insertIndex);
-            } else if(this.getBalanceFactor(index) < -1){
-                topIndex = BinaryTree.getLeftChildIndex(index);
-                if(this.getBalanceFactor(topIndex) <= 0)
-                    this.rightRotation(index);
-                else {
-                    this.leftRotation(topIndex);
-                    this.rightRotation(index);
-                }
-                index = BinaryTree.getParentIndex(insertIndex);
-            }
-            index = BinaryTree.getParentIndex(index);
-        }
         return true;
     }
-
 }
 
