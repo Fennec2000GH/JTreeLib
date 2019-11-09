@@ -6,14 +6,32 @@ This project aims to allow programmers and software enthusiasts to conveniently 
 Currently Available Trees 
 ------------------------- 
 
-Binary Tree 
+Binary Tree ✔️
 
-Binary Search Tree
+Binary Search Tree ✔️
 
-Multi-Way Tree 
+Ternary Tree ✔️
 
-B-Tree
+AVL Tree ✔️ (under review) 
 
-Trie (Prefix Tree) 
+Multi-Way Tree (under maintenance)
 
-Heap 
+B-Tree 
+
+Trie (Prefix Tree)(under maintenance)  
+
+Heap (under maintenance) 
+
+Planned for Future 
+------------------
+2-3 Tree 
+
+2-3-4 Tree 
+
+Segment Tree 
+
+Interval Tree 
+
+Trees for string analysis/manipulation 
+
+
