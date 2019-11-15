@@ -14,24 +14,24 @@ Ternary Tree ✔️
 
 AVL Tree ✔️ (under review) 
 
-Multi-Way Tree (under maintenance)
+Multi-Way Tree (called MultiTree in code) ✔️ 
 
-B-Tree 
+B-Tree (under maintenance) 
 
-Trie (Prefix Tree)(under maintenance)  
+Trie (Radix/Prefix Tree)(under maintenance)  
 
 Heap (under maintenance) 
 
 Planned for Future 
 ------------------
-2-3 Tree 
+2-3 Tree (under maintenance) 
 
-2-3-4 Tree 
+2-3-4 Tree (planned) 
 
-Segment Tree 
+Segment Tree ✔️ 
 
-Interval Tree 
+Interval Tree (under maintenance) 
 
-Trees for string analysis/manipulation 
+Trees for string analysis/manipulation (planned) 
 
 
